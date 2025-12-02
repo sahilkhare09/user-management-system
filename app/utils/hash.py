@@ -1,10 +1,13 @@
 from passlib.context import CryptContext
 
-# This tells passlib which hashing algorithm to use
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-# Function to hash passwords
+# Hash the password
 def hash_password(password: str):
-    # bcrypt supports max 72 bytes → ensure safe length
     return pwd_context.hash(password)
+
+# Verify password while login
+def verify_password(plain_password: str, hashed_password: str):
+    return pwd_context.verify(plain_password, hashed_password)
+
 

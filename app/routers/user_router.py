@@ -1,109 +1,271 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+from uuid import UUID
+
 from app.database.db import get_db
 from app.models.user import User
+from app.models.department import Department
+from app.models.organisation import Organisation
 from app.schemas.user_schema import UserCreate, UserRead, UserUpdate
+from app.core.security import get_current_user
 from app.utils.hash import hash_password
+from app.services.log_service import create_log
 
-router = APIRouter(prefix="/users", tags=["Users"])
+router = APIRouter(prefix="/api/v1/users", tags=["Users"])
 
+
+# ============================================================
+# ROLE HELPERS
+# ============================================================
+
+def normalize_role(role: str):
+    return role.lower().strip() if role else role
+
+
+def require_role(user: User, allowed: list[str]):
+    if normalize_role(user.role) not in allowed:
+        raise HTTPException(403, f"Allowed roles: {allowed}")
+
+
+def ensure_same_org(current_user: User, org_id: UUID):
+    if current_user.organisation_id != org_id:
+        raise HTTPException(403, "Not allowed — different organisation")
+
+
+def ensure_same_department(current_user: User, dept_id: UUID):
+    if current_user.department_id != dept_id:
+        raise HTTPException(403, "Not allowed — different department")
+
+
+# ============================================================
 # CREATE USER
-@router.post("/", response_model=UserRead)
-def create_user(user: UserCreate, db: Session = Depends(get_db)):
+# ============================================================
+@router.post("", response_model=UserRead, status_code=201)
+def create_user(
+    payload: UserCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    # First user → SUPERADMIN
+    if db.query(User).count() == 0:
+        assigned_role = "superadmin"
 
-    existing_user = db.query(User).filter(User.email == user.email).first()
-    if existing_user:
-        raise HTTPException(status_code=400, detail="Email already exists")
+    else:
+        current_role = normalize_role(current_user.role)
+        requested_role = normalize_role(payload.role)
 
-    hashed_pass = hash_password(user.password)
+        if current_role == "superadmin":
+            assigned_role = requested_role or "employee"
+
+        elif current_role == "organisation_admin":
+            if requested_role in ["superadmin", "organisation_admin"]:
+                raise HTTPException(403, "Org Admin cannot create admin roles")
+
+            if payload.organisation_id != current_user.organisation_id:
+                raise HTTPException(403, "Org Admin can create only in their org")
+
+            assigned_role = requested_role or "employee"
+
+        else:
+            raise HTTPException(403, "Only admins can create users")
+
+    # Validate organisation
+    if payload.organisation_id:
+        org = db.query(Organisation).filter(Organisation.id == payload.organisation_id).first()
+        if not org:
+            raise HTTPException(404, "Organisation not found")
+
+    # Validate department
+    if payload.department_id:
+        dept = db.query(Department).filter(Department.id == payload.department_id).first()
+        if not dept:
+            raise HTTPException(404, "Department not found")
+
+        if dept.organisation_id != payload.organisation_id:
+            raise HTTPException(403, "Department does not belong to this organisation")
+
+    # Duplicate email check
+    existing = db.query(User).filter(User.email == payload.email).first()
+    if existing:
+        raise HTTPException(400, "Email already exists")
 
     new_user = User(
-        first_name=user.first_name,
-        last_name=user.last_name,
-        age=user.age,
-        email=user.email,
-        password=hashed_pass,
-        role="Employee",
-        department=None
+        first_name=payload.first_name,
+        last_name=payload.last_name,
+        age=payload.age,
+        email=payload.email,
+        password=hash_password(payload.password),
+        role=assigned_role,
+        organisation_id=payload.organisation_id,
+        department_id=payload.department_id
     )
 
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
 
+    create_log(db, current_user.id, f"Created user {new_user.email}")
+
     return new_user
 
 
-# GET ALL USERS
+# ============================================================
+# GET USERS
+# ============================================================
 @router.get("/", response_model=list[UserRead])
-def get_all_users(db: Session = Depends(get_db)):
-    users = db.query(User).all()
-    return users
+def get_all_users(
+    page: int = 1,
+    limit: int = 10,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+
+    role = normalize_role(current_user.role)
+
+    q = db.query(User)
+
+    if role == "superadmin":
+        pass  # full access
+
+    elif role == "organisation_admin":
+        q = q.filter(User.organisation_id == current_user.organisation_id)
+
+    elif role == "department_manager":
+        q = q.filter(User.department_id == current_user.department_id)
+
+    else:
+        return [current_user]
+
+    return q.offset((page - 1) * limit).limit(limit).all()
 
 
-# GET USER BY ID
+# ============================================================
+# GET ONE USER
+# ============================================================
 @router.get("/{user_id}", response_model=UserRead)
-def get_user_by_id(user_id: str, db: Session = Depends(get_db)):
-
+def get_user(
+    user_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     user = db.query(User).filter(User.id == user_id).first()
-
     if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise HTTPException(404, "User not found")
 
-    return user
+    role = normalize_role(current_user.role)
+
+    if role == "superadmin":
+        return user
+
+    if role == "organisation_admin":
+        ensure_same_org(current_user, user.organisation_id)
+        return user
+
+    if role == "department_manager":
+        ensure_same_department(current_user, user.department_id)
+        return user
+
+    if current_user.id == user_id:
+        return user
+
+    raise HTTPException(403, "Not allowed")
 
 
+# ============================================================
+# UPDATE USER
+# ============================================================
 @router.put("/{user_id}", response_model=UserRead)
-def update_user(user_id: str, update_data: UserUpdate, db: Session = Depends(get_db)):
-
+def update_user(
+    user_id: UUID,
+    payload: UserUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     user = db.query(User).filter(User.id == user_id).first()
-
     if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise HTTPException(404, "User not found")
 
-    # Update fields if provided
-    if update_data.first_name is not None:
-        user.first_name = update_data.first_name
+    role = normalize_role(current_user.role)
 
-    if update_data.last_name is not None:
-        user.last_name = update_data.last_name
+    # Superadmin → full access
+    if role == "superadmin":
+        pass
 
-    if update_data.age is not None:
-        user.age = update_data.age
+    elif role == "organisation_admin":
+        ensure_same_org(current_user, user.organisation_id)
 
-    if update_data.email is not None:
-        # email must be unique
-        email_exists = db.query(User).filter(User.email == update_data.email).first()
-        if email_exists and email_exists.id != user.id:
-            raise HTTPException(status_code=400, detail="Email already exists")
-        user.email = update_data.email
+    elif role == "department_manager":
+        ensure_same_department(current_user, user.department_id)
 
-    if update_data.password is not None:
-        user.password = hash_password(update_data.password)
+        forbidden_fields = ["role", "organisation_id", "department_id"]
+        if any(getattr(payload, f) for f in forbidden_fields):
+            raise HTTPException(403, "Department Manager cannot modify role/org/department")
 
-    if update_data.role is not None:
-        user.role = update_data.role
+    elif current_user.id == user_id:
+        forbidden_fields = ["role", "organisation_id", "department_id"]
+        if any(getattr(payload, f) for f in forbidden_fields):
+            raise HTTPException(403, "Employees cannot modify role/org/department")
 
-    if update_data.department is not None:
-        user.department = update_data.department
+    else:
+        raise HTTPException(403, "Not allowed")
+
+    # Duplicate email check
+    if payload.email:
+        exists = db.query(User).filter(User.email == payload.email, User.id != user_id).first()
+        if exists:
+            raise HTTPException(400, "Email already used by another user")
+
+    data = payload.dict(exclude_unset=True)
+
+    if "password" in data:
+        data["password"] = hash_password(data["password"])
+
+    # Validate department update
+    if data.get("department_id"):
+        dept = db.query(Department).filter(Department.id == data["department_id"]).first()
+        if not dept:
+            raise HTTPException(404, "Department not found")
+
+        if data.get("organisation_id") and dept.organisation_id != data["organisation_id"]:
+            raise HTTPException(403, "Department does not belong to this organisation")
+
+    # Apply update
+    for k, v in data.items():
+        setattr(user, k, v)
 
     db.commit()
     db.refresh(user)
 
+    create_log(db, current_user.id, f"Updated user {user.email}")
+
     return user
 
+
+# ============================================================
+# DELETE USER
+# ============================================================
 @router.delete("/{user_id}")
-def delete_user(user_id:str, db: Session = Depends(get_db))
-    
+def delete_user(
+    user_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     user = db.query(User).filter(User.id == user_id).first()
-
     if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise HTTPException(404, "User not found")
 
-    db.delete(user)     # remove row from database
-    db.commit()         # save changes
-    db.refresh()
-    
+    role = normalize_role(current_user.role)
+
+    if role == "superadmin":
+        pass
+    elif role == "organisation_admin":
+        ensure_same_org(current_user, user.organisation_id)
+    else:
+        raise HTTPException(403, "Permission denied")
+
+    db.delete(user)
+    db.commit()
+
+    create_log(db, current_user.id, f"Deleted user {user.email}")
 
     return {"message": "User deleted successfully"}
-    
