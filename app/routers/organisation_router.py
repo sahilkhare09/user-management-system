@@ -3,16 +3,22 @@ from sqlalchemy.orm import Session
 from uuid import UUID
 
 from app.schemas.organisation_schema import (
-    OrganisationCreate, OrganisationRead, OrganisationUpdate
+    OrganisationCreate,
+    OrganisationRead,
+    OrganisationUpdate,
 )
 from app.database.db import get_db
 from app.services.organisation_service import (
-    create_organisation, list_organisations, get_organisation,
-    update_organisation, delete_organisation
+    create_organisation,
+    list_organisations,
+    get_organisation,
+    update_organisation,
+    delete_organisation,
 )
 from app.core.security import get_current_user, require_role
 
-router = APIRouter(prefix="/api/v1/organisations",tags=["Organisations"])
+router = APIRouter(prefix="/api/v1/organisations", tags=["Organisations"])
+
 
 # -------------------------------------------------------
 # CREATE ORGANISATION (SUPERADMIN ONLY)
@@ -21,7 +27,7 @@ router = APIRouter(prefix="/api/v1/organisations",tags=["Organisations"])
 def create_organisation_api(
     payload: OrganisationCreate,
     db: Session = Depends(get_db),
-    current_user=Depends(require_role(["superadmin"]))
+    current_user=Depends(require_role(["superadmin"])),
 ):
     return create_organisation(db, payload)
 
@@ -33,8 +39,7 @@ def create_organisation_api(
 # -------------------------------------------------------
 @router.get("/", response_model=list[OrganisationRead])
 def list_organisations_api(
-    db: Session = Depends(get_db),
-    current_user=Depends(get_current_user)
+    db: Session = Depends(get_db), current_user=Depends(get_current_user)
 ):
 
     # Superadmin sees all organisations
@@ -51,7 +56,7 @@ def list_organisations_api(
     # Normal user cannot list all organisations
     raise HTTPException(
         status_code=403,
-        detail="Access denied. Only superadmin or organisation admin can view organisations."
+        detail="Access denied. Only superadmin or organisation admin can view organisations.",
     )
 
 
@@ -64,7 +69,7 @@ def list_organisations_api(
 def get_organisation_api(
     organisation_id: UUID,
     db: Session = Depends(get_db),
-    current_user=Depends(get_current_user)
+    current_user=Depends(get_current_user),
 ):
 
     org = get_organisation(db, organisation_id)
@@ -79,14 +84,10 @@ def get_organisation_api(
     if current_user.role.lower() == "organisation_admin":
         if current_user.organisation_id == organisation_id:
             return org
-        raise HTTPException(
-            403, "You are not allowed to access another organisation"
-        )
+        raise HTTPException(403, "You are not allowed to access another organisation")
 
     # Normal user cannot view organisation details
-    raise HTTPException(
-        403, "Only admins can access organisation details"
-    )
+    raise HTTPException(403, "Only admins can access organisation details")
 
 
 # -------------------------------------------------------
@@ -97,7 +98,7 @@ def update_organisation_api(
     organisation_id: UUID,
     payload: OrganisationUpdate,
     db: Session = Depends(get_db),
-    current_user=Depends(require_role(["superadmin"]))
+    current_user=Depends(require_role(["superadmin"])),
 ):
     org = get_organisation(db, organisation_id)
     if not org:
@@ -113,7 +114,7 @@ def update_organisation_api(
 def delete_organisation_api(
     organisation_id: UUID,
     db: Session = Depends(get_db),
-    current_user=Depends(require_role(["superadmin"]))
+    current_user=Depends(require_role(["superadmin"])),
 ):
 
     org = get_organisation(db, organisation_id)

@@ -18,6 +18,7 @@ router = APIRouter(prefix="/api/v1/users", tags=["Users"])
 # ROLE HELPERS
 # ============================================================
 
+
 def normalize_role(role: str):
     return role.lower().strip() if role else role
 
@@ -71,13 +72,19 @@ def create_user(
 
     # Validate organisation
     if payload.organisation_id:
-        org = db.query(Organisation).filter(Organisation.id == payload.organisation_id).first()
+        org = (
+            db.query(Organisation)
+            .filter(Organisation.id == payload.organisation_id)
+            .first()
+        )
         if not org:
             raise HTTPException(404, "Organisation not found")
 
     # Validate department
     if payload.department_id:
-        dept = db.query(Department).filter(Department.id == payload.department_id).first()
+        dept = (
+            db.query(Department).filter(Department.id == payload.department_id).first()
+        )
         if not dept:
             raise HTTPException(404, "Department not found")
 
@@ -97,7 +104,7 @@ def create_user(
         password=hash_password(payload.password),
         role=assigned_role,
         organisation_id=payload.organisation_id,
-        department_id=payload.department_id
+        department_id=payload.department_id,
     )
 
     db.add(new_user)
@@ -199,7 +206,9 @@ def update_user(
 
         forbidden_fields = ["role", "organisation_id", "department_id"]
         if any(getattr(payload, f) for f in forbidden_fields):
-            raise HTTPException(403, "Department Manager cannot modify role/org/department")
+            raise HTTPException(
+                403, "Department Manager cannot modify role/org/department"
+            )
 
     elif current_user.id == user_id:
         forbidden_fields = ["role", "organisation_id", "department_id"]
@@ -211,7 +220,11 @@ def update_user(
 
     # Duplicate email check
     if payload.email:
-        exists = db.query(User).filter(User.email == payload.email, User.id != user_id).first()
+        exists = (
+            db.query(User)
+            .filter(User.email == payload.email, User.id != user_id)
+            .first()
+        )
         if exists:
             raise HTTPException(400, "Email already used by another user")
 
@@ -222,11 +235,16 @@ def update_user(
 
     # Validate department update
     if data.get("department_id"):
-        dept = db.query(Department).filter(Department.id == data["department_id"]).first()
+        dept = (
+            db.query(Department).filter(Department.id == data["department_id"]).first()
+        )
         if not dept:
             raise HTTPException(404, "Department not found")
 
-        if data.get("organisation_id") and dept.organisation_id != data["organisation_id"]:
+        if (
+            data.get("organisation_id")
+            and dept.organisation_id != data["organisation_id"]
+        ):
             raise HTTPException(403, "Department does not belong to this organisation")
 
     # Apply update

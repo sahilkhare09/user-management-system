@@ -22,5 +22,4 @@ class LoginRequest(BaseModel):
 # TOKEN PAYLOAD (decoded JWT)
 # -------------------------------------------------------
 class TokenData(BaseModel):
-    sub: Optional[str] = None   # user_id
-
+    sub: Optional[str] = None  # user_id

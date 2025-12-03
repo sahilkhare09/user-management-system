@@ -24,16 +24,11 @@ class Organisation(Base):
         "User",
         back_populates="organisation",
         foreign_keys="User.organisation_id",
-        cascade="all, delete"
+        cascade="all, delete",
     )
 
-    admin = relationship(
-        "User",
-        foreign_keys=[admin_id]
-    )
+    admin = relationship("User", foreign_keys=[admin_id])
 
     departments = relationship(
-        "Department",
-        back_populates="organisation",
-        cascade="all, delete"
+        "Department", back_populates="organisation", cascade="all, delete"
     )

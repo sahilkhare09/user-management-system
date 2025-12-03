@@ -1,6 +1,8 @@
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
 from uuid import UUID
+from typing import Optional
+
 
 from app.models.department import Department
 from app.models.organisation import Organisation
@@ -10,7 +12,9 @@ from app.models.user import User
 # -------------------------------------------------------
 # CREATE DEPARTMENT
 # -------------------------------------------------------
-def create_department(db: Session, name: str, organisation_id: UUID, manager_id: UUID | None):
+def create_department(
+    db: Session, name: str, organisation_id: UUID, manager_id: Optional[UUID] = None
+):
 
     # Check if organisation exists
     org = db.query(Organisation).filter(Organisation.id == organisation_id).first()
@@ -18,15 +22,18 @@ def create_department(db: Session, name: str, organisation_id: UUID, manager_id:
         raise HTTPException(status_code=404, detail="Organisation not found")
 
     # Prevent duplicate department name within same organisation
-    existing = db.query(Department).filter(
-        Department.organisation_id == organisation_id,
-        Department.name.ilike(name)
-    ).first()
+    existing = (
+        db.query(Department)
+        .filter(
+            Department.organisation_id == organisation_id, Department.name.ilike(name)
+        )
+        .first()
+    )
 
     if existing:
         raise HTTPException(
             status_code=400,
-            detail="A department with this name already exists in this organisation"
+            detail="A department with this name already exists in this organisation",
         )
 
     # Validate manager
@@ -37,16 +44,11 @@ def create_department(db: Session, name: str, organisation_id: UUID, manager_id:
 
         if manager.organisation_id != organisation_id:
             raise HTTPException(
-                status_code=400,
-                detail="Manager must belong to the same organisation"
+                status_code=400, detail="Manager must belong to the same organisation"
             )
 
     # Create department
-    dept = Department(
-        name=name,
-        organisation_id=organisation_id,
-        manager_id=manager_id
-    )
+    dept = Department(name=name, organisation_id=organisation_id, manager_id=manager_id)
 
     db.add(dept)
     db.commit()
@@ -74,22 +76,31 @@ def list_departments(db: Session):
 # -------------------------------------------------------
 # UPDATE DEPARTMENT
 # -------------------------------------------------------
-def update_department(db: Session, department_id: UUID, name: str | None, manager_id: UUID | None):
+def update_department(
+    db: Session,
+    department_id: UUID,
+    name: Optional[str] = None,
+    manager_id: Optional[UUID] = None,
+):
     dept = get_department(db, department_id)
 
     # Update name if provided
     if name:
         # Check duplicate name inside same organisation
-        duplicate = db.query(Department).filter(
-            Department.organisation_id == dept.organisation_id,
-            Department.name.ilike(name),
-            Department.id != department_id
-        ).first()
+        duplicate = (
+            db.query(Department)
+            .filter(
+                Department.organisation_id == dept.organisation_id,
+                Department.name.ilike(name),
+                Department.id != department_id,
+            )
+            .first()
+        )
 
         if duplicate:
             raise HTTPException(
                 status_code=400,
-                detail="Another department with this name already exists in this organisation"
+                detail="Another department with this name already exists in this organisation",
             )
 
         dept.name = name
@@ -106,7 +117,7 @@ def update_department(db: Session, department_id: UUID, name: str | None, manage
             if manager.organisation_id != dept.organisation_id:
                 raise HTTPException(
                     status_code=400,
-                    detail="Manager must belong to the same organisation"
+                    detail="Manager must belong to the same organisation",
                 )
 
             dept.manager_id = manager_id

@@ -10,14 +10,13 @@ from app.models.organisation import Organisation
 # -------------------------------------------------------
 def create_organisation(db: Session, payload):
     # Check duplicate organisation name
-    existing = db.query(Organisation).filter(
-        Organisation.name.ilike(payload.name)
-    ).first()
+    existing = (
+        db.query(Organisation).filter(Organisation.name.ilike(payload.name)).first()
+    )
 
     if existing:
         raise HTTPException(
-            status_code=400,
-            detail="Organisation with this name already exists"
+            status_code=400, detail="Organisation with this name already exists"
         )
 
     org = Organisation(**payload.dict())
@@ -39,9 +38,7 @@ def list_organisations(db: Session):
 # GET ORGANISATION BY ID
 # -------------------------------------------------------
 def get_organisation(db: Session, organisation_id: UUID):
-    org = db.query(Organisation).filter(
-        Organisation.id == organisation_id
-    ).first()
+    org = db.query(Organisation).filter(Organisation.id == organisation_id).first()
 
     if not org:
         raise HTTPException(status_code=404, detail="Organisation not found")
@@ -59,15 +56,19 @@ def update_organisation(db: Session, organisation_id: UUID, payload):
 
     # If updating name → check duplicate
     if "name" in update_data:
-        existing = db.query(Organisation).filter(
-            Organisation.name.ilike(update_data["name"]),
-            Organisation.id != organisation_id
-        ).first()
+        existing = (
+            db.query(Organisation)
+            .filter(
+                Organisation.name.ilike(update_data["name"]),
+                Organisation.id != organisation_id,
+            )
+            .first()
+        )
 
         if existing:
             raise HTTPException(
                 status_code=400,
-                detail="Another organisation with this name already exists"
+                detail="Another organisation with this name already exists",
             )
 
     # Apply updates safely

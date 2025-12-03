@@ -3,12 +3,17 @@ from sqlalchemy.orm import Session
 from uuid import UUID
 
 from app.schemas.department_schema import (
-    DepartmentCreate, DepartmentRead, DepartmentUpdate
+    DepartmentCreate,
+    DepartmentRead,
+    DepartmentUpdate,
 )
 from app.database.db import get_db
 from app.services.department_service import (
-    create_department, list_departments, get_department,
-    update_department, delete_department
+    create_department,
+    list_departments,
+    get_department,
+    update_department,
+    delete_department,
 )
 from app.core.security import get_current_user
 from app.models.user import User
@@ -23,7 +28,7 @@ router = APIRouter(prefix="/api/v1/departments", tags=["Departments"])
 def create_department_api(
     payload: DepartmentCreate,
     db: Session = Depends(get_db),
-    current_user=Depends(get_current_user)
+    current_user=Depends(get_current_user),
 ):
 
     allowed_roles = ["superadmin", "organisation_admin"]
@@ -37,7 +42,8 @@ def create_department_api(
     if current_user.role.lower() != "superadmin":
         if current_user.organisation_id != payload.organisation_id:
             raise HTTPException(
-                403, "Organisation Admin can create departments only in their own organisation"
+                403,
+                "Organisation Admin can create departments only in their own organisation",
             )
 
     # Manager validation (if provided)
@@ -48,15 +54,10 @@ def create_department_api(
             raise HTTPException(404, "Manager user not found")
 
         if manager.organisation_id != payload.organisation_id:
-            raise HTTPException(
-                403, "Manager must belong to the same organisation"
-            )
+            raise HTTPException(403, "Manager must belong to the same organisation")
 
     return create_department(
-        db,
-        payload.name,
-        payload.organisation_id,
-        payload.manager_id
+        db, payload.name, payload.organisation_id, payload.manager_id
     )
 
 
@@ -87,7 +88,7 @@ def update_department_api(
     department_id: UUID,
     payload: DepartmentUpdate,
     db: Session = Depends(get_db),
-    current_user=Depends(get_current_user)
+    current_user=Depends(get_current_user),
 ):
 
     allowed_roles = ["superadmin", "organisation_admin"]
@@ -105,7 +106,8 @@ def update_department_api(
     if current_user.role.lower() != "superadmin":
         if current_user.organisation_id != department.organisation_id:
             raise HTTPException(
-                403, "Organisation Admin cannot update a department of another organisation"
+                403,
+                "Organisation Admin cannot update a department of another organisation",
             )
 
     # Manager validation (if provided)
@@ -114,16 +116,9 @@ def update_department_api(
         if not manager:
             raise HTTPException(404, "Manager user not found")
         if manager.organisation_id != department.organisation_id:
-            raise HTTPException(
-                403, "Manager must belong to the same organisation"
-            )
+            raise HTTPException(403, "Manager must belong to the same organisation")
 
-    return update_department(
-        db,
-        department_id,
-        payload.name,
-        payload.manager_id
-    )
+    return update_department(db, department_id, payload.name, payload.manager_id)
 
 
 # -------------------------------------------------------
@@ -133,7 +128,7 @@ def update_department_api(
 def delete_department_api(
     department_id: UUID,
     db: Session = Depends(get_db),
-    current_user=Depends(get_current_user)
+    current_user=Depends(get_current_user),
 ):
 
     allowed_roles = ["superadmin", "organisation_admin"]
@@ -170,7 +165,9 @@ def assign_manager(
 
     allowed_roles = ["superadmin", "organisation_admin"]
     if current_user.role.lower() not in allowed_roles:
-        raise HTTPException(403, "Only superadmin or organisation admin can assign managers")
+        raise HTTPException(
+            403, "Only superadmin or organisation admin can assign managers"
+        )
 
     department = get_department(db, department_id)
     if not department:
@@ -179,7 +176,9 @@ def assign_manager(
     # Org admin restriction
     if current_user.role.lower() != "superadmin":
         if current_user.organisation_id != department.organisation_id:
-            raise HTTPException(403, "You cannot modify another organisation's department")
+            raise HTTPException(
+                403, "You cannot modify another organisation's department"
+            )
 
     # User validation
     user = db.query(User).filter(User.id == user_id).first()
@@ -212,7 +211,9 @@ def remove_manager(
 
     allowed_roles = ["superadmin", "organisation_admin"]
     if current_user.role.lower() not in allowed_roles:
-        raise HTTPException(403, "Only superadmin or organisation admin can remove managers")
+        raise HTTPException(
+            403, "Only superadmin or organisation admin can remove managers"
+        )
 
     department = get_department(db, department_id)
     if not department:
@@ -221,7 +222,9 @@ def remove_manager(
     # Org admin restriction
     if current_user.role.lower() != "superadmin":
         if current_user.organisation_id != department.organisation_id:
-            raise HTTPException(403, "You cannot modify another organisation's department")
+            raise HTTPException(
+                403, "You cannot modify another organisation's department"
+            )
 
     # Remove manager role
     if department.manager_id:

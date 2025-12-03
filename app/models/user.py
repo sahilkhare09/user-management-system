@@ -18,29 +18,23 @@ class User(Base):
     role = Column(String, nullable=False, default="Employee")
 
     organisation_id = Column(
-        UUID(as_uuid=True),
-        ForeignKey("organisations.id"),
-        nullable=True
+        UUID(as_uuid=True), ForeignKey("organisations.id"), nullable=True
     )
 
     department_id = Column(
-        UUID(as_uuid=True),
-        ForeignKey("departments.id"),
-        nullable=True
+        UUID(as_uuid=True), ForeignKey("departments.id"), nullable=True
     )
 
     # RELATIONSHIPS FIX
     organisation = relationship(
-        "Organisation",
-        back_populates="users",
-        foreign_keys=[organisation_id]
+        "Organisation", back_populates="users", foreign_keys=[organisation_id]
     )
 
     logs = relationship(
         "ActivityLog",
         back_populates="user",
         cascade="all, delete",
-        passive_deletes=True
+        passive_deletes=True,
     )
 
     created_at = Column(DateTime, default=datetime.utcnow)

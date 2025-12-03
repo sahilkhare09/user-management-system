@@ -20,8 +20,9 @@ router = APIRouter(prefix="/api/v1/auth", tags=["Auth"])
 # LOGIN
 # -------------------------------------------------------
 @router.post("/login", response_model=Token)
-def login(form_data: OAuth2PasswordRequestForm = Depends(),
-          db: Session = Depends(get_db)):
+def login(
+    form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)
+):
 
     user = authenticate_user(db, form_data.username, form_data.password)
 
@@ -35,8 +36,7 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(),
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
 
     access_token = create_access_token(
-        data={"sub": str(user.id)},
-        expires_delta=access_token_expires
+        data={"sub": str(user.id)}, expires_delta=access_token_expires
     )
 
     # log login event
@@ -53,7 +53,7 @@ def me(current_user: User = Depends(get_current_user)):
     return {
         "id": current_user.id,
         "email": current_user.email,
-        "role": current_user.role
+        "role": current_user.role,
     }
 
 
@@ -64,7 +64,7 @@ def me(current_user: User = Depends(get_current_user)):
 def make_admin(
     user_id: UUID,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
 
     if current_user.role != "superadmin":
@@ -96,7 +96,7 @@ def make_admin(
 def make_organisation_admin(
     user_id: UUID,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
 
     if current_user.role != "superadmin":
@@ -128,7 +128,7 @@ def make_department_manager(
     user_id: UUID,
     department_id: UUID,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
 
     if current_user.role not in ["superadmin", "organisation_admin"]:
@@ -144,7 +144,7 @@ def make_department_manager(
         if current_user.organisation_id != department.organisation_id:
             raise HTTPException(
                 403,
-                "Organisation admin can assign manager only inside their own organisation"
+                "Organisation admin can assign manager only inside their own organisation",
             )
 
     # Fetch user
@@ -154,7 +154,9 @@ def make_department_manager(
 
     # manager must belong to same organisation
     if user.organisation_id != department.organisation_id:
-        raise HTTPException(400, "User must belong to the same organisation as the department")
+        raise HTTPException(
+            400, "User must belong to the same organisation as the department"
+        )
 
     # assign role
     user.role = "department_manager"
@@ -169,10 +171,5 @@ def make_department_manager(
     return {
         "message": f"{user.email} is now manager of {department.name}",
         "department_id": str(department.id),
-        "manager_id": str(user.id)
+        "manager_id": str(user.id),
     }
-
-
-
-
-

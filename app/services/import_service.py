@@ -7,10 +7,16 @@ from app.models.department import Department
 from app.utils.hash import hash_password
 
 REQUIRED_COLUMNS = [
-    "first_name", "last_name", "age",
-    "email", "password",
-    "organisation_id", "department_id", "role"
+    "first_name",
+    "last_name",
+    "age",
+    "email",
+    "password",
+    "organisation_id",
+    "department_id",
+    "role",
 ]
+
 
 def import_users_from_excel(db: Session, file, current_user):
 
@@ -29,9 +35,11 @@ def import_users_from_excel(db: Session, file, current_user):
             # --- Validate Organisation ---
             org = None
             if pd.notna(row["organisation_id"]):
-                org = db.query(Organisation).filter(
-                    Organisation.id == row["organisation_id"]
-                ).first()
+                org = (
+                    db.query(Organisation)
+                    .filter(Organisation.id == row["organisation_id"])
+                    .first()
+                )
                 if not org:
                     raise Exception("Invalid organisation_id")
 
@@ -43,9 +51,11 @@ def import_users_from_excel(db: Session, file, current_user):
             # --- Validate Department ---
             dept = None
             if pd.notna(row["department_id"]):
-                dept = db.query(Department).filter(
-                    Department.id == row["department_id"]
-                ).first()
+                dept = (
+                    db.query(Department)
+                    .filter(Department.id == row["department_id"])
+                    .first()
+                )
                 if not dept:
                     raise Exception("Invalid department_id")
 
@@ -53,9 +63,7 @@ def import_users_from_excel(db: Session, file, current_user):
                     raise Exception("Department does not belong to organisation")
 
             # --- Check duplicates ---
-            existing = db.query(User).filter(
-                User.email == row["email"]
-            ).first()
+            existing = db.query(User).filter(User.email == row["email"]).first()
             if existing:
                 raise Exception("Email already exists")
 
@@ -67,8 +75,12 @@ def import_users_from_excel(db: Session, file, current_user):
                 email=row["email"],
                 password=hash_password(row["password"]),
                 role=row["role"],
-                organisation_id=row["organisation_id"] if pd.notna(row["organisation_id"]) else None,
-                department_id=row["department_id"] if pd.notna(row["department_id"]) else None,
+                organisation_id=(
+                    row["organisation_id"] if pd.notna(row["organisation_id"]) else None
+                ),
+                department_id=(
+                    row["department_id"] if pd.notna(row["department_id"]) else None
+                ),
             )
 
             db.add(user)
@@ -76,14 +88,17 @@ def import_users_from_excel(db: Session, file, current_user):
             success_count += 1
 
         except Exception as e:
-            errors.append({
-                "row": int(index) + 2,   # +2 because Excel rows start at 1 and header row
-                "error": str(e)
-            })
+            errors.append(
+                {
+                    "row": int(index)
+                    + 2,  # +2 because Excel rows start at 1 and header row
+                    "error": str(e),
+                }
+            )
             db.rollback()
 
     return {
         "success_count": success_count,
         "failed_count": len(errors),
-        "errors": errors
+        "errors": errors,
     }

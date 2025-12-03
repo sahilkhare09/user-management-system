@@ -14,23 +14,21 @@ class ActivityLog(Base):
 
     # Which user performed this action
     user_id = Column(
-        UUID(as_uuid=True),
-        ForeignKey("users.id", ondelete="CASCADE"),
-        nullable=True
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=True
     )
 
     # Optional: organisation context
     organisation_id = Column(
         UUID(as_uuid=True),
         ForeignKey("organisations.id", ondelete="SET NULL"),
-        nullable=True
+        nullable=True,
     )
 
     # Optional: department context
     department_id = Column(
         UUID(as_uuid=True),
         ForeignKey("departments.id", ondelete="SET NULL"),
-        nullable=True
+        nullable=True,
     )
 
     # Action description
@@ -42,4 +40,3 @@ class ActivityLog(Base):
     user = relationship("User", back_populates="logs")
     organisation = relationship("Organisation")
     department = relationship("Department")
-

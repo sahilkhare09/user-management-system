@@ -1,5 +1,3 @@
-# app/core/security.py
-
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import jwt, JWTError, ExpiredSignatureError
@@ -25,9 +23,7 @@ credentials_exception = HTTPException(
 def decode_token(token: str) -> str:
     try:
         payload = jwt.decode(
-            token,
-            settings.SECRET_KEY,
-            algorithms=[settings.ALGORITHM]
+            token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
         )
 
         user_id: str = payload.get("sub")
@@ -71,6 +67,7 @@ def get_current_user(
 # RBAC HELPERS
 # ============================================================
 
+
 # ✔ SUPERADMIN ONLY
 def require_superadmin(current_user: User = Depends(get_current_user)):
     if current_user.role != "superadmin":
@@ -83,7 +80,7 @@ def require_org_admin(current_user: User = Depends(get_current_user)):
     if current_user.role not in ["organisation_admin", "superadmin"]:
         raise HTTPException(
             status_code=403,
-            detail="Only organisation admins or superadmins can access this resource."
+            detail="Only organisation admins or superadmins can access this resource.",
         )
     return current_user
 
@@ -93,9 +90,8 @@ def require_role(roles: list):
     def checker(current_user: User = Depends(get_current_user)):
         if current_user.role not in [r.lower() for r in roles]:
             raise HTTPException(
-                status_code=403,
-                detail=f"Access denied — requires roles: {roles}"
+                status_code=403, detail=f"Access denied — requires roles: {roles}"
             )
         return current_user
-    return checker
 
+    return checker

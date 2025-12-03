@@ -12,18 +12,14 @@ class Department(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     name = Column(String, nullable=False)
 
-    organisation_id = Column(UUID(as_uuid=True), ForeignKey("organisations.id"), nullable=False)
+    organisation_id = Column(
+        UUID(as_uuid=True), ForeignKey("organisations.id"), nullable=False
+    )
     manager_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
 
     # ----------------------------
     # RELATIONSHIPS
     # ----------------------------
-    organisation = relationship(
-        "Organisation",
-        back_populates="departments"
-    )
+    organisation = relationship("Organisation", back_populates="departments")
 
-    manager = relationship(
-        "User",
-        foreign_keys=[manager_id]
-    )
+    manager = relationship("User", foreign_keys=[manager_id])

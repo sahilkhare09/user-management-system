@@ -160,3 +160,4 @@ __marimo__/
 
 # Logs
 *.log
+venv*

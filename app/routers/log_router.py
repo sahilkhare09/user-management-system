@@ -15,17 +15,17 @@ def get_logs(
     page: int = 1,
     limit: int = 20,
     db: Session = Depends(get_db),
-    current_user=Depends(require_org_admin),   # 🔥 FIXED
+    current_user=Depends(require_org_admin),  # 🔥 FIXED
 ):
 
     offset = (page - 1) * limit
 
     logs = (
         db.query(ActivityLog)
-          .order_by(ActivityLog.timestamp.desc())
-          .offset(offset)
-          .limit(limit)
-          .all()
+        .order_by(ActivityLog.timestamp.desc())
+        .offset(offset)
+        .limit(limit)
+        .all()
     )
 
     return {"page": page, "limit": limit, "logs": logs}

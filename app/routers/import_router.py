@@ -7,11 +7,12 @@ from app.schemas.user_schema import ExcelImportResult
 
 router = APIRouter(prefix="/api/v1/import", tags=["Excel Import"])
 
+
 @router.post("/users", response_model=ExcelImportResult)
 async def import_users(
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
-    current_user = Depends(get_current_user)
+    current_user=Depends(get_current_user),
 ):
     # Only superadmin or org-admin
     if current_user.role not in ["superadmin", "organisation_admin"]:

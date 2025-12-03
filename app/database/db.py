@@ -15,6 +15,7 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 # Base class for our database models
 Base = declarative_base()
 
+
 # Dependency for using DB in routers
 def get_db():
     db = SessionLocal()
@@ -22,4 +23,3 @@ def get_db():
         yield db
     finally:
         db.close()
-
