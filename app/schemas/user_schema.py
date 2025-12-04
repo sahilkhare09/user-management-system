@@ -4,9 +4,7 @@ from typing import Optional, List, Any
 from datetime import datetime
 
 
-# -------------------------------------------
-# ROLE ENUM (controls allowed role values)
-# -------------------------------------------
+
 class UserRole(str):
     SUPERADMIN = "superadmin"
     ORG_ADMIN = "organisation_admin"
@@ -14,9 +12,7 @@ class UserRole(str):
     EMPLOYEE = "employee"
 
 
-# -------------------------------------------
-# USER CREATE
-# -------------------------------------------
+
 class UserCreate(BaseModel):
     first_name: str
     last_name: str
@@ -32,9 +28,7 @@ class UserCreate(BaseModel):
         from_attributes = True
 
 
-# -------------------------------------------
-# USER READ (response)
-# -------------------------------------------
+
 class UserRead(BaseModel):
     id: UUID
     first_name: str
@@ -52,9 +46,7 @@ class UserRead(BaseModel):
         from_attributes = True
 
 
-# -------------------------------------------
-# USER UPDATE
-# -------------------------------------------
+
 class UserUpdate(BaseModel):
     first_name: Optional[str] = None
     last_name: Optional[str] = None

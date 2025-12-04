@@ -1,21 +1,18 @@
 from logging.config import fileConfig
 from sqlalchemy import engine_from_config, pool
-from alembic import context, op
+from alembic import context
 from app.database.db import Base
-import sqlalchemy as sa
 
 
-# Import models so Alembic can detect them
-import app.models.user
-import app.models.organisation
+from app.models import user
+from app.models import organisation
+from app.models import department
+from app.models import refresh_token  # IMPORTANT
 
 
-# -------------------------------------------------------
-# Alembic Config
-# -------------------------------------------------------
 config = context.config
 
-# Logging
+# Setup loggers
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
@@ -52,6 +49,7 @@ def run_migrations_online():
             context.run_migrations()
 
 
+# Entry point
 if context.is_offline_mode():
     run_migrations_offline()
 else:

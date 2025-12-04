@@ -20,9 +20,6 @@ from app.core.security import get_current_user, require_role
 router = APIRouter(prefix="/api/v1/organisations", tags=["Organisations"])
 
 
-# -------------------------------------------------------
-# CREATE ORGANISATION (SUPERADMIN ONLY)
-# -------------------------------------------------------
 @router.post("/", response_model=OrganisationRead)
 def create_organisation_api(
     payload: OrganisationCreate,
@@ -32,11 +29,6 @@ def create_organisation_api(
     return create_organisation(db, payload)
 
 
-# -------------------------------------------------------
-# LIST ORGANISATIONS
-# Superadmin -> sees all
-# Organisation Admin -> only sees their organisation
-# -------------------------------------------------------
 @router.get("/", response_model=list[OrganisationRead])
 def list_organisations_api(
     db: Session = Depends(get_db), current_user=Depends(get_current_user)
@@ -60,11 +52,6 @@ def list_organisations_api(
     )
 
 
-# -------------------------------------------------------
-# GET ORGANISATION BY ID
-# Superadmin -> any organisation
-# Organisation Admin -> only their organisation
-# -------------------------------------------------------
 @router.get("/{organisation_id}", response_model=OrganisationRead)
 def get_organisation_api(
     organisation_id: UUID,
@@ -90,9 +77,6 @@ def get_organisation_api(
     raise HTTPException(403, "Only admins can access organisation details")
 
 
-# -------------------------------------------------------
-# UPDATE ORGANISATION (SUPERADMIN ONLY)
-# -------------------------------------------------------
 @router.put("/{organisation_id}", response_model=OrganisationRead)
 def update_organisation_api(
     organisation_id: UUID,
@@ -107,9 +91,6 @@ def update_organisation_api(
     return update_organisation(db, organisation_id, payload)
 
 
-# -------------------------------------------------------
-# DELETE ORGANISATION (SUPERADMIN ONLY)
-# -------------------------------------------------------
 @router.delete("/{organisation_id}")
 def delete_organisation_api(
     organisation_id: UUID,

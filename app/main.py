@@ -24,7 +24,6 @@ async def log_requests(request: Request, call_next):
     return response
 
 
-# Routers MUST be added like this (not as decorators)
 app.include_router(auth_router)
 app.include_router(user_router)
 app.include_router(org_router)

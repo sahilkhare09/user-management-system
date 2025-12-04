@@ -1,4 +1,5 @@
 import pandas as pd
+from typing import List, Any
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 from app.models.user import User
@@ -6,6 +7,7 @@ from app.models.organisation import Organisation
 from app.models.department import Department
 from app.utils.hash import hash_password
 
+# REQUIRED_COLUMNS MUST be defined
 REQUIRED_COLUMNS = [
     "first_name",
     "last_name",
@@ -19,22 +21,27 @@ REQUIRED_COLUMNS = [
 
 
 def import_users_from_excel(db: Session, file, current_user):
-
+    # read excel
     df = pd.read_excel(file.file)
 
-    # Validate columns
+    # sanitize: convert NaN to None and string "null"/"NULL" to None
+    df = df.where(pd.notnull(df), None)
+    df = df.replace({"null": None, "NULL": None})
+
+    # ensure columns exist
     for col in REQUIRED_COLUMNS:
         if col not in df.columns:
-            raise HTTPException(400, f"Missing column: {col}")
+            # Use HTTPException so caller receives 400
+            raise HTTPException(status_code=400, detail=f"Missing column: {col}")
 
     success_count = 0
-    errors = []
+    errors: List[Any] = []
 
     for index, row in df.iterrows():
         try:
             # --- Validate Organisation ---
             org = None
-            if pd.notna(row["organisation_id"]):
+            if row["organisation_id"]:
                 org = (
                     db.query(Organisation)
                     .filter(Organisation.id == row["organisation_id"])
@@ -50,7 +57,7 @@ def import_users_from_excel(db: Session, file, current_user):
 
             # --- Validate Department ---
             dept = None
-            if pd.notna(row["department_id"]):
+            if row["department_id"]:
                 dept = (
                     db.query(Department)
                     .filter(Department.id == row["department_id"])
@@ -71,16 +78,12 @@ def import_users_from_excel(db: Session, file, current_user):
             user = User(
                 first_name=row["first_name"],
                 last_name=row["last_name"],
-                age=int(row["age"]),
+                age=int(row["age"]) if row["age"] is not None else None,
                 email=row["email"],
                 password=hash_password(row["password"]),
                 role=row["role"],
-                organisation_id=(
-                    row["organisation_id"] if pd.notna(row["organisation_id"]) else None
-                ),
-                department_id=(
-                    row["department_id"] if pd.notna(row["department_id"]) else None
-                ),
+                organisation_id=row["organisation_id"],
+                department_id=row["department_id"],
             )
 
             db.add(user)
@@ -88,17 +91,15 @@ def import_users_from_excel(db: Session, file, current_user):
             success_count += 1
 
         except Exception as e:
+            # make sure values are JSON-serializable (native python types)
             errors.append(
-                {
-                    "row": int(index)
-                    + 2,  # +2 because Excel rows start at 1 and header row
-                    "error": str(e),
-                }
+                {"row": int(index) + 2, "error": str(e)}
             )
             db.rollback()
 
+    # return native-Python types only
     return {
-        "success_count": success_count,
-        "failed_count": len(errors),
+        "success_count": int(success_count),
+        "failed_count": int(len(errors)),
         "errors": errors,
     }

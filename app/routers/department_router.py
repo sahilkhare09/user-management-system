@@ -2,28 +2,16 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from uuid import UUID
 
-from app.schemas.department_schema import (
-    DepartmentCreate,
-    DepartmentRead,
-    DepartmentUpdate,
-)
+from app.schemas.department_schema import (DepartmentCreate,DepartmentRead,DepartmentUpdate)
+
 from app.database.db import get_db
-from app.services.department_service import (
-    create_department,
-    list_departments,
-    get_department,
-    update_department,
-    delete_department,
-)
+from app.services.department_service import (create_department,list_departments,get_department,update_department,delete_department)
 from app.core.security import get_current_user
 from app.models.user import User
 
 router = APIRouter(prefix="/api/v1/departments", tags=["Departments"])
 
 
-# -------------------------------------------------------
-# CREATE DEPARTMENT
-# -------------------------------------------------------
 @router.post("/", response_model=DepartmentRead)
 def create_department_api(
     payload: DepartmentCreate,
@@ -61,17 +49,11 @@ def create_department_api(
     )
 
 
-# -------------------------------------------------------
-# LIST DEPARTMENTS
-# -------------------------------------------------------
 @router.get("/", response_model=list[DepartmentRead])
 def list_departments_api(db: Session = Depends(get_db)):
     return list_departments(db)
 
 
-# -------------------------------------------------------
-# GET DEPARTMENT BY ID
-# -------------------------------------------------------
 @router.get("/{department_id}", response_model=DepartmentRead)
 def get_department_api(department_id: UUID, db: Session = Depends(get_db)):
     department = get_department(db, department_id)
@@ -80,9 +62,6 @@ def get_department_api(department_id: UUID, db: Session = Depends(get_db)):
     return department
 
 
-# -------------------------------------------------------
-# UPDATE DEPARTMENT
-# -------------------------------------------------------
 @router.put("/{department_id}", response_model=DepartmentRead)
 def update_department_api(
     department_id: UUID,
@@ -121,9 +100,6 @@ def update_department_api(
     return update_department(db, department_id, payload.name, payload.manager_id)
 
 
-# -------------------------------------------------------
-# DELETE DEPARTMENT
-# -------------------------------------------------------
 @router.delete("/{department_id}")
 def delete_department_api(
     department_id: UUID,
@@ -152,9 +128,7 @@ def delete_department_api(
     return delete_department(db, department_id)
 
 
-# -------------------------------------------------------
-# ASSIGN MANAGER TO DEPARTMENT
-# -------------------------------------------------------
+
 @router.put("/{department_id}/assign-manager/{user_id}", response_model=DepartmentRead)
 def assign_manager(
     department_id: UUID,
@@ -199,9 +173,7 @@ def assign_manager(
     return department
 
 
-# -------------------------------------------------------
-# REMOVE MANAGER FROM DEPARTMENT
-# -------------------------------------------------------
+
 @router.put("/{department_id}/remove-manager", response_model=DepartmentRead)
 def remove_manager(
     department_id: UUID,

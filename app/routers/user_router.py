@@ -14,10 +14,6 @@ from app.services.log_service import create_log
 router = APIRouter(prefix="/api/v1/users", tags=["Users"])
 
 
-# ============================================================
-# ROLE HELPERS
-# ============================================================
-
 
 def normalize_role(role: str):
     return role.lower().strip() if role else role
@@ -38,9 +34,6 @@ def ensure_same_department(current_user: User, dept_id: UUID):
         raise HTTPException(403, "Not allowed — different department")
 
 
-# ============================================================
-# CREATE USER
-# ============================================================
 @router.post("", response_model=UserRead, status_code=201)
 def create_user(
     payload: UserCreate,
@@ -116,39 +109,30 @@ def create_user(
     return new_user
 
 
-# ============================================================
-# GET USERS
-# ============================================================
-@router.get("/", response_model=list[UserRead])
+@router.get("", response_model=list[UserRead])
 def get_all_users(
     page: int = 1,
     limit: int = 10,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-
     role = normalize_role(current_user.role)
 
     q = db.query(User)
 
     if role == "superadmin":
-        pass  # full access
-
+        pass  # superadmin sees everything
     elif role == "organisation_admin":
         q = q.filter(User.organisation_id == current_user.organisation_id)
-
     elif role == "department_manager":
         q = q.filter(User.department_id == current_user.department_id)
-
     else:
         return [current_user]
 
     return q.offset((page - 1) * limit).limit(limit).all()
 
 
-# ============================================================
-# GET ONE USER
-# ============================================================
+
 @router.get("/{user_id}", response_model=UserRead)
 def get_user(
     user_id: UUID,
@@ -178,9 +162,6 @@ def get_user(
     raise HTTPException(403, "Not allowed")
 
 
-# ============================================================
-# UPDATE USER
-# ============================================================
 @router.put("/{user_id}", response_model=UserRead)
 def update_user(
     user_id: UUID,
@@ -259,9 +240,6 @@ def update_user(
     return user
 
 
-# ============================================================
-# DELETE USER
-# ============================================================
 @router.delete("/{user_id}")
 def delete_user(
     user_id: UUID,
@@ -287,3 +265,4 @@ def delete_user(
     create_log(db, current_user.id, f"Deleted user {user.email}")
 
     return {"message": "User deleted successfully"}
+
