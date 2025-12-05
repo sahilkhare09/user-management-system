@@ -49,9 +49,8 @@ def get_current_user(
     token: HTTPAuthorizationCredentials = Depends(bearer_scheme)
 ):
 
-    raw_token = token.credentials  # Extract "Bearer <token>"
+    raw_token = token.credentials
 
-    # Decode → get user_id
     user_id_str = decode_token(raw_token)
 
     try:

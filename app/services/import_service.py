@@ -7,7 +7,6 @@ from app.models.organisation import Organisation
 from app.models.department import Department
 from app.utils.hash import hash_password
 
-# REQUIRED_COLUMNS MUST be defined
 REQUIRED_COLUMNS = [
     "first_name",
     "last_name",
@@ -21,17 +20,13 @@ REQUIRED_COLUMNS = [
 
 
 def import_users_from_excel(db: Session, file, current_user):
-    # read excel
     df = pd.read_excel(file.file)
 
-    # sanitize: convert NaN to None and string "null"/"NULL" to None
     df = df.where(pd.notnull(df), None)
     df = df.replace({"null": None, "NULL": None})
 
-    # ensure columns exist
     for col in REQUIRED_COLUMNS:
         if col not in df.columns:
-            # Use HTTPException so caller receives 400
             raise HTTPException(status_code=400, detail=f"Missing column: {col}")
 
     success_count = 0
@@ -39,7 +34,6 @@ def import_users_from_excel(db: Session, file, current_user):
 
     for index, row in df.iterrows():
         try:
-            # --- Validate Organisation ---
             org = None
             if row["organisation_id"]:
                 org = (
@@ -50,12 +44,10 @@ def import_users_from_excel(db: Session, file, current_user):
                 if not org:
                     raise Exception("Invalid organisation_id")
 
-                # Org admin cannot import for other orgs
                 if current_user.role == "organisation_admin":
                     if current_user.organisation_id != org.id:
                         raise Exception("Cannot import for another organisation")
-
-            # --- Validate Department ---
+                    
             dept = None
             if row["department_id"]:
                 dept = (
@@ -69,12 +61,10 @@ def import_users_from_excel(db: Session, file, current_user):
                 if org and dept.organisation_id != org.id:
                     raise Exception("Department does not belong to organisation")
 
-            # --- Check duplicates ---
             existing = db.query(User).filter(User.email == row["email"]).first()
             if existing:
                 raise Exception("Email already exists")
 
-            # --- Create user ---
             user = User(
                 first_name=row["first_name"],
                 last_name=row["last_name"],
@@ -91,13 +81,11 @@ def import_users_from_excel(db: Session, file, current_user):
             success_count += 1
 
         except Exception as e:
-            # make sure values are JSON-serializable (native python types)
             errors.append(
                 {"row": int(index) + 2, "error": str(e)}
             )
             db.rollback()
 
-    # return native-Python types only
     return {
         "success_count": int(success_count),
         "failed_count": int(len(errors)),

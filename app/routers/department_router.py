@@ -118,7 +118,7 @@ def delete_department_api(
     if not department:
         raise HTTPException(404, "Department not found")
 
-    # Org admin restriction
+
     if current_user.role.lower() != "superadmin":
         if current_user.organisation_id != department.organisation_id:
             raise HTTPException(
@@ -147,14 +147,12 @@ def assign_manager(
     if not department:
         raise HTTPException(404, "Department not found")
 
-    # Org admin restriction
     if current_user.role.lower() != "superadmin":
         if current_user.organisation_id != department.organisation_id:
             raise HTTPException(
                 403, "You cannot modify another organisation's department"
             )
 
-    # User validation
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(404, "User not found")
@@ -162,7 +160,7 @@ def assign_manager(
     if user.organisation_id != department.organisation_id:
         raise HTTPException(403, "Manager must belong to the same organisation")
 
-    # Assign role
+
     user.role = "department_manager"
     user.department_id = department_id
 
@@ -198,7 +196,6 @@ def remove_manager(
                 403, "You cannot modify another organisation's department"
             )
 
-    # Remove manager role
     if department.manager_id:
         manager = db.query(User).filter(User.id == department.manager_id).first()
         if manager:

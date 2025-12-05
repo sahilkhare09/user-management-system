@@ -6,8 +6,8 @@ class Settings(BaseSettings):
     SECRET_KEY: str
     ALGORITHM: str
 
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60       # default: 1 hour
-    REFRESH_TOKEN_EXPIRE_DAYS: int = 7          # default: 7 days
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
+    REFRESH_TOKEN_EXPIRE_DAYS: int = 2       
 
     class Config:
         env_file = ".env"

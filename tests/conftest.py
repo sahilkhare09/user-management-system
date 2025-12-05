@@ -11,9 +11,6 @@ from app.services.auth_service import create_access_token
 from uuid import uuid4
 
 
-# ---------------------------
-# Test DB (SQLite in-memory)
-# ---------------------------
 SQLALCHEMY_TEST_URL = "sqlite:///./test.db"
 
 engine = create_engine(
@@ -27,7 +24,6 @@ TestingSessionLocal = sessionmaker(
 
 @pytest.fixture(scope="function")
 def db_session():
-    # Reset DB for every TEST
     Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
 
@@ -38,9 +34,6 @@ def db_session():
         db.close()
 
 
-# ---------------------------
-# Test client
-# ---------------------------
 @pytest.fixture
 def client(db_session):
     def override_db():
@@ -49,25 +42,20 @@ def client(db_session):
         finally:
             pass
 
-    # Override FastAPI dependency
     from app.database.db import get_db
     app.dependency_overrides[get_db] = override_db
 
     return TestClient(app)
 
 
-# ---------------------------
-# Superadmin Token Fixture
-# ---------------------------
 @pytest.fixture
 def superadmin_token(db_session):
-    # Create unique superadmin user each time
     user = User(
-        id=uuid4(),                       # UUID object, not string
+        id=uuid4(),
         first_name="Admin",
         last_name="User",
         age=30,
-        email=f"admin_{uuid4()}@test.com",  # UNIQUE email every time
+        email=f"admin_{uuid4()}@test.com",
         password=hash_password("admin123"),
         role="superadmin",
     )
@@ -76,7 +64,6 @@ def superadmin_token(db_session):
     db_session.commit()
     db_session.refresh(user)
 
-    # Create a valid JWT token
     token = create_access_token({"sub": str(user.id)})
 
     return token

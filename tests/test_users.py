@@ -2,9 +2,6 @@ from app.models.user import User
 from app.utils.hash import hash_password
 
 
-# ============================================================
-# CREATE USER
-# ============================================================
 def test_create_user(client, superadmin_token):
     new_user = {
         "first_name": "John",
@@ -25,9 +22,6 @@ def test_create_user(client, superadmin_token):
     assert response.json()["email"] == "john@doe.com"
 
 
-# ============================================================
-# GET ALL USERS
-# ============================================================
 def test_get_all_users(client, superadmin_token):
     response = client.get(
         "/api/v1/users",
@@ -40,9 +34,6 @@ def test_get_all_users(client, superadmin_token):
     assert isinstance(data, list)
     assert len(data) >= 1
 
-# ============================================================
-# GET SINGLE USER
-# ============================================================
 def test_get_single_user(client, db_session, superadmin_token):
     # Create user in DB
     user = User(
@@ -56,7 +47,6 @@ def test_get_single_user(client, db_session, superadmin_token):
     db_session.add(user)
     db_session.commit()
 
-    # Fetch user
     response = client.get(
         f"/api/v1/users/{user.id}",
         headers={"Authorization": f"Bearer {superadmin_token}"},
@@ -66,11 +56,7 @@ def test_get_single_user(client, db_session, superadmin_token):
     assert response.json()["email"] == "unique@test.com"
 
 
-# ============================================================
-# UPDATE USER
-# ============================================================
 def test_update_user(client, db_session, superadmin_token):
-    # Create user
     user = User(
         first_name="Old",
         last_name="Name",
@@ -101,9 +87,6 @@ def test_update_user(client, db_session, superadmin_token):
     assert response.json()["first_name"] == "New"
 
 
-# ============================================================
-# DELETE USER
-# ============================================================
 def test_delete_user(client, db_session, superadmin_token):
     user = User(
         first_name="Delete",
@@ -116,7 +99,6 @@ def test_delete_user(client, db_session, superadmin_token):
     db_session.add(user)
     db_session.commit()
 
-    # Delete user
     response = client.delete(
         f"/api/v1/users/{user.id}",
         headers={"Authorization": f"Bearer {superadmin_token}"}
@@ -125,7 +107,6 @@ def test_delete_user(client, db_session, superadmin_token):
 
     assert response.status_code == 200
 
-    # Verify user deleted
     response = client.get(
         f"/api/v1/users/{user.id}",
         headers={"Authorization": f"Bearer {superadmin_token}"},

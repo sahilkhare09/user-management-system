@@ -12,9 +12,6 @@ from app.utils.hash import verify_password
 from app.services.log_service import create_log
 
 
-# ============================================================
-# CREATE ACCESS TOKEN (Short lived)
-# ============================================================
 def create_access_token(data: dict) -> str:
     now = datetime.utcnow()
     expire = now + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
@@ -24,20 +21,17 @@ def create_access_token(data: dict) -> str:
     return token
 
 
-# ============================================================
-# CREATE REFRESH TOKEN (Long lived)
-# ============================================================
 def create_refresh_token(db: Session, user_id: str) -> str:
-    now = datetime.utcnow()
+    now = datetime.now()
     expire = now + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
 
-    payload = {"sub": user_id, "exp": expire, "iat": now}
+    payload = {"sub": str(user_id), "exp": expire, "iat": now}
     token_str = jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 
-    # Save to DB (CORRECTED KEY NAMES)
+
     db_token = RefreshToken(
         user_id=user_id,
-        token=token_str,        # ✔ CORRECT FIELD NAME
+        token=token_str,
         expires_at=expire,
         revoked=False,
     )
@@ -47,9 +41,6 @@ def create_refresh_token(db: Session, user_id: str) -> str:
     return token_str
 
 
-# ============================================================
-# DECODE TOKEN
-# ============================================================
 def decode_token(token: str) -> dict:
     try:
         payload = jwt.decode(
@@ -64,9 +55,6 @@ def decode_token(token: str) -> dict:
         raise HTTPException(401, "Invalid token")
 
 
-# ============================================================
-# AUTHENTICATE USER (Email + Password)
-# ============================================================
 def authenticate_user(db: Session, email: str, password: str):
     user = db.query(User).filter(User.email == email.lower().strip()).first()
 
@@ -78,16 +66,13 @@ def authenticate_user(db: Session, email: str, password: str):
     return user
 
 
-# ============================================================
-# LOGIN → returns access + refresh
-# ============================================================
 def login(db: Session, email: str, password: str):
     user = authenticate_user(db, email, password)
     if not user:
         raise HTTPException(401, "Incorrect email or password")
 
     access_token = create_access_token({"sub": str(user.id)})
-    refresh_token = create_refresh_token(db, str(user.id))
+    refresh_token = create_refresh_token(db, user.id)
 
     return {
         "access_token": access_token,
@@ -98,14 +83,10 @@ def login(db: Session, email: str, password: str):
     }
 
 
-# ============================================================
-# REFRESH ACCESS TOKEN
-# ============================================================
 def refresh_access_token(db: Session, refresh_token: str):
     payload = decode_token(refresh_token)
     user_id = payload.get("sub")
 
-    # Validate DB entry (✔ FIXED FIELD NAME)
     db_token = (
         db.query(RefreshToken)
         .filter(RefreshToken.token == refresh_token)
@@ -136,13 +117,10 @@ def refresh_access_token(db: Session, refresh_token: str):
     }
 
 
-# ============================================================
-# LOGOUT → delete refresh token
-# ============================================================
 def logout(db: Session, refresh_token: str):
     db_token = (
         db.query(RefreshToken)
-        .filter(RefreshToken.token == refresh_token)  # ✔ FIXED FIELD
+        .filter(RefreshToken.token == refresh_token)
         .first()
     )
 

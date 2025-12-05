@@ -32,7 +32,7 @@ class OrganisationRead(OrganisationBase):
 class OrganisationUpdate(BaseModel):
     name: Optional[str] = None
     address: Optional[str] = None
-    admin_id: Optional[UUID] = None  # allow updating admin
+    admin_id: Optional[UUID] = None
 
     class Config:
         from_attributes = True

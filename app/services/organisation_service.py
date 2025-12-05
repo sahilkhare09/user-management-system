@@ -5,11 +5,7 @@ from fastapi import HTTPException
 from app.models.organisation import Organisation
 
 
-# -------------------------------------------------------
-# CREATE ORGANISATION
-# -------------------------------------------------------
 def create_organisation(db: Session, payload):
-    # Check duplicate organisation name
     existing = (
         db.query(Organisation).filter(Organisation.name.ilike(payload.name)).first()
     )
@@ -27,16 +23,10 @@ def create_organisation(db: Session, payload):
     return org
 
 
-# -------------------------------------------------------
-# LIST ORGANISATIONS
-# -------------------------------------------------------
 def list_organisations(db: Session):
     return db.query(Organisation).all()
 
 
-# -------------------------------------------------------
-# GET ORGANISATION BY ID
-# -------------------------------------------------------
 def get_organisation(db: Session, organisation_id: UUID):
     org = db.query(Organisation).filter(Organisation.id == organisation_id).first()
 
@@ -46,15 +36,11 @@ def get_organisation(db: Session, organisation_id: UUID):
     return org
 
 
-# -------------------------------------------------------
-# UPDATE ORGANISATION
-# -------------------------------------------------------
 def update_organisation(db: Session, organisation_id: UUID, payload):
     org = get_organisation(db, organisation_id)
 
     update_data = payload.dict(exclude_unset=True)
 
-    # If updating name → check duplicate
     if "name" in update_data:
         existing = (
             db.query(Organisation)
@@ -71,7 +57,6 @@ def update_organisation(db: Session, organisation_id: UUID, payload):
                 detail="Another organisation with this name already exists",
             )
 
-    # Apply updates safely
     for key, value in update_data.items():
         setattr(org, key, value)
 
@@ -79,10 +64,6 @@ def update_organisation(db: Session, organisation_id: UUID, payload):
     db.refresh(org)
     return org
 
-
-# -------------------------------------------------------
-# DELETE ORGANISATION
-# -------------------------------------------------------
 def delete_organisation(db: Session, organisation_id: UUID):
     org = get_organisation(db, organisation_id)
 

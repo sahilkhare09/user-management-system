@@ -14,7 +14,6 @@ async def import_users(
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
-    # Only superadmin or org-admin
     if current_user.role not in ["superadmin", "organisation_admin"]:
         raise HTTPException(403, "You are not allowed to import users")
 

@@ -7,16 +7,14 @@ from app.database.db import Base
 from app.models import user
 from app.models import organisation
 from app.models import department
-from app.models import refresh_token  # IMPORTANT
+from app.models import refresh_token
 
 
 config = context.config
 
-# Setup loggers
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# Metadata for autogenerate
 target_metadata = Base.metadata
 
 

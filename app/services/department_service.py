@@ -9,19 +9,14 @@ from app.models.organisation import Organisation
 from app.models.user import User
 
 
-# -------------------------------------------------------
-# CREATE DEPARTMENT
-# -------------------------------------------------------
 def create_department(
     db: Session, name: str, organisation_id: UUID, manager_id: Optional[UUID] = None
 ):
 
-    # Check if organisation exists
     org = db.query(Organisation).filter(Organisation.id == organisation_id).first()
     if not org:
         raise HTTPException(status_code=404, detail="Organisation not found")
 
-    # Prevent duplicate department name within same organisation
     existing = (
         db.query(Department)
         .filter(
@@ -36,7 +31,6 @@ def create_department(
             detail="A department with this name already exists in this organisation",
         )
 
-    # Validate manager
     if manager_id:
         manager = db.query(User).filter(User.id == manager_id).first()
         if not manager:
@@ -47,7 +41,6 @@ def create_department(
                 status_code=400, detail="Manager must belong to the same organisation"
             )
 
-    # Create department
     dept = Department(name=name, organisation_id=organisation_id, manager_id=manager_id)
 
     db.add(dept)
@@ -56,9 +49,6 @@ def create_department(
     return dept
 
 
-# -------------------------------------------------------
-# GET BY ID
-# -------------------------------------------------------
 def get_department(db: Session, department_id: UUID):
     dept = db.query(Department).filter(Department.id == department_id).first()
     if not dept:
@@ -66,16 +56,10 @@ def get_department(db: Session, department_id: UUID):
     return dept
 
 
-# -------------------------------------------------------
-# LIST ALL
-# -------------------------------------------------------
 def list_departments(db: Session):
     return db.query(Department).all()
 
 
-# -------------------------------------------------------
-# UPDATE DEPARTMENT
-# -------------------------------------------------------
 def update_department(
     db: Session,
     department_id: UUID,
@@ -84,9 +68,7 @@ def update_department(
 ):
     dept = get_department(db, department_id)
 
-    # Update name if provided
     if name:
-        # Check duplicate name inside same organisation
         duplicate = (
             db.query(Department)
             .filter(
@@ -105,10 +87,9 @@ def update_department(
 
         dept.name = name
 
-    # Update manager
     if manager_id is not None:
         if manager_id == "":
-            dept.manager_id = None  # removing manager
+            dept.manager_id = None
         else:
             manager = db.query(User).filter(User.id == manager_id).first()
             if not manager:
@@ -127,9 +108,6 @@ def update_department(
     return dept
 
 
-# -------------------------------------------------------
-# DELETE
-# -------------------------------------------------------
 def delete_department(db: Session, department_id: UUID):
     dept = get_department(db, department_id)
     db.delete(dept)

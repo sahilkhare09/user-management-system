@@ -1,7 +1,6 @@
 from fastapi import FastAPI, Request
 from app.database.db import Base, engine
 
-# Routers
 from app.routers.user_router import router as user_router
 from app.routers.auth_router import router as auth_router
 from app.routers.organisation_router import router as org_router
@@ -12,11 +11,9 @@ from app.routers.import_router import router as import_router
 
 app = FastAPI()
 
-# Initialize SQLAlchemy
 Base.metadata.create_all(bind=engine)
 
 
-# Logging middleware
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
     print(">>> HEADERS:", dict(request.headers))

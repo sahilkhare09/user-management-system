@@ -16,10 +16,10 @@ class LoginRequest(BaseModel):
 
 
 class TokenData(BaseModel):
-    sub: Optional[str] = None  # user_id
-    exp: Optional[int] = None  # NEW (expiry timestamp)
+    sub: Optional[str] = None
+    exp: Optional[int] = None
 
 
 
 class RefreshRequest(BaseModel):
-    refresh_token: str     # NEW
+    refresh_token: str
